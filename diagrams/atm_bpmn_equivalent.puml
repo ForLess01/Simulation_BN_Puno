@@ -1,0 +1,140 @@
+@startuml
+title Flujo operacional completo ATM (equivalente BPMN en PlantUML)
+
+|Cliente|
+start
+:Llegar al área ATM;
+
+|Observador / Registro|
+:Registrar arrival_ts;
+:Registrar fecha, franja y cola visible;
+:Registrar perfil visual si es posible;
+
+if (¿Ventana operativa restringida?) then (Sí)
+  :Marcar contexto restringido;
+else (No)
+  :Continuar flujo normal;
+endif
+
+|Sistema ATM|
+if (¿Hay ATM funcional disponible?) then (Sí)
+  :Asignar ATM al cliente;
+
+  |Observador / Registro|
+  :Registrar service_start_ts (inferido);
+
+  |Cliente|
+  :Iniciar operación en ATM;
+
+  |Sistema ATM|
+  if (¿Ocurre falla, cashout o mantenimiento?) then (Sí)
+    |Cliente|
+    if (¿Cliente reintenta?) then (Sí)
+      |Sistema ATM|
+      :Reevaluar disponibilidad funcional;
+      if (¿ATM funcional disponible?) then (Sí)
+        |Observador / Registro|
+        :Mantener trazabilidad del reintento;
+        |Cliente|
+        :Retomar operación;
+        |Sistema ATM|
+        if (¿Operación finaliza correctamente?) then (Sí)
+          |Observador / Registro|
+          :Registrar service_end_ts;
+          :Registrar departure_ts;
+          :served_flag = true;
+          stop
+        else (No)
+          |Cliente|
+          :Desistir;
+          |Observador / Registro|
+          :Registrar abandon_ts;
+          :Inferir abandon_reason;
+          :Registrar departure_ts;
+          :served_flag = false;
+          stop
+        endif
+      else (No)
+        |Cliente|
+        :Desistir por indisponibilidad;
+        |Observador / Registro|
+        :Registrar abandon_ts;
+        :Inferir abandon_reason;
+        :Registrar departure_ts;
+        :served_flag = false;
+        stop
+      endif
+    else (No)
+      |Observador / Registro|
+      :Registrar abandon_ts;
+      :Inferir abandon_reason;
+      :Registrar departure_ts;
+      :served_flag = false;
+      stop
+    endif
+  else (No)
+    |Observador / Registro|
+    :Registrar service_end_ts;
+    :Registrar departure_ts;
+    :served_flag = true;
+    stop
+  endif
+
+else (No)
+  |Cliente|
+  :Entrar a cola;
+
+  |Observador / Registro|
+  :queue_entered = true;
+  :Registrar queue_position_at_arrival;
+
+  while (¿Sigue esperando?) is (Sí)
+    |Sistema ATM|
+    if (¿Se libera ATM funcional?) then (Sí)
+      :Reservar ATM para cliente;
+
+      |Observador / Registro|
+      :Registrar service_start_ts (inferido);
+
+      |Cliente|
+      :Usar ATM;
+
+      |Sistema ATM|
+      if (¿Ocurre falla o interrupción?) then (Sí)
+        |Cliente|
+        if (¿Reintenta?) then (Sí)
+          |Sistema ATM|
+          :Reevaluar disponibilidad funcional;
+        else (No)
+          |Observador / Registro|
+          :Registrar abandon_ts;
+          :Inferir abandon_reason;
+          :Registrar departure_ts;
+          :served_flag = false;
+          stop
+        endif
+      else (No)
+        |Observador / Registro|
+        :Registrar service_end_ts;
+        :Registrar departure_ts;
+        :served_flag = true;
+        stop
+      endif
+    else (No)
+      |Cliente|
+      if (¿Abandona por espera / saturación?) then (Sí)
+        |Observador / Registro|
+        :Registrar abandon_ts;
+        :Inferir abandon_reason;
+        :Registrar departure_ts;
+        :served_flag = false;
+        stop
+      else (No)
+        |Observador / Registro|
+        :Actualizar condición de espera si aplica;
+      endif
+    endif
+  endwhile (No)
+endif
+
+@enduml

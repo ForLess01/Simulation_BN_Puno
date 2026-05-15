@@ -1,0 +1,25 @@
+@startuml
+title Estados operativos del ATM
+
+[*] --> idle
+
+idle --> busy : cliente asignado
+busy --> idle : operación finalizada
+
+idle --> down_failure : falla técnica
+busy --> down_failure : falla durante operación
+
+idle --> down_maintenance : mantenimiento programado
+busy --> down_maintenance : cierre operativo
+
+idle --> cashout : sin efectivo
+busy --> cashout : efectivo agotado
+
+down_failure --> idle : recuperación
+down_maintenance --> idle : mantenimiento completado
+cashout --> idle : recarga exitosa
+
+idle --> offline : cierre total / desconexión
+offline --> idle : reapertura
+
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+title Mapa causal simplificado de congestión ATM
+
+rectangle "Calendario laboral\n(inicio/quincena/fin de mes)" as Payroll
+rectangle "Transferencias sociales\n(Pensión 65 u otros)" as Social
+rectangle "Hora del día" as Time
+rectangle "Capacidad operativa ATM" as Capacity
+rectangle "Perfil del usuario\n(edad, experiencia)" as Profile
+rectangle "Tipo de operación" as TxType
+rectangle "Llegadas" as Arrivals
+rectangle "Tiempo de servicio" as Service
+rectangle "Longitud de cola" as Queue
+rectangle "Abandono" as Abandon
+
+Payroll --> Arrivals
+Social --> Arrivals
+Time --> Arrivals
+Capacity --> Queue
+Profile --> Service
+TxType --> Service
+Arrivals --> Queue
+Service --> Queue
+Queue --> Abandon
+Capacity --> Abandon
+
+@enduml

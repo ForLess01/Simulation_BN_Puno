@@ -1,0 +1,46 @@
+@startuml
+title Estructura lógica de datos del proyecto ATM
+
+class CustomerEvent {
+  event_id
+  customer_id
+  branch_id
+  arrival_ts
+  service_start_ts
+  service_end_ts
+  departure_ts
+  observed_sex
+  estimated_age_range
+  transaction_type
+  queue_entered
+  abandoned
+  served_flag
+}
+
+class ATMState {
+  atm_state_event_id
+  atm_id
+  state_start_ts
+  state_end_ts
+  atm_state
+  cash_available
+  failure_flag
+  maintenance_flag
+}
+
+class SystemSnapshot {
+  snapshot_id
+  snapshot_ts
+  branch_id
+  queue_length_total
+  active_atm_count
+  busy_atm_count
+  idle_atm_count
+  failed_atm_count
+}
+
+CustomerEvent --> ATMState : usa / impacta
+SystemSnapshot ..> CustomerEvent : agrega eventos
+SystemSnapshot ..> ATMState : agrega estados
+
+@enduml

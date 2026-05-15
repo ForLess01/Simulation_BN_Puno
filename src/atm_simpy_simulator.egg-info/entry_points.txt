@@ -1,0 +1,2 @@
+[console_scripts]
+atm-sim = atm_simulator.cli:main

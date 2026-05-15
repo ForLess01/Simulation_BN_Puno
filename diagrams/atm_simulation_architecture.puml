@@ -1,0 +1,204 @@
+@startuml
+title Arquitectura del modelo de simulación de eventos discretos ATM BN Puno
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam componentStyle rectangle
+skinparam wrapWidth 220
+skinparam maxMessageSize 200
+skinparam ArrowColor #333333
+skinparam PackageBorderColor #222222
+skinparam PackageFontStyle bold
+skinparam ComponentBorderColor #333333
+skinparam ComponentBackgroundColor #F8F8F8
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #888888
+
+package "1. Entradas del modelo" {
+  component "Configuración general\n- horizonte temporal\n- seed\n- número de ATM\n- frecuencia de snapshots\n- escenario activo" as Config
+
+  component "Parámetros estocásticos\n- tasa de llegada por franja (λ)\n- distribución de interarribos\n- distribución de servicio\n- abandono\n- fallas / cashout / mantenimiento\n- recarga / recuperación" as Params
+
+  component "Calendario y contexto\n- banda intradía\n- inicio_mes / quincena / fin_mes\n- presión social parcial\n- restricción horaria\n- contingencia operativa" as Context
+
+  component "Datos de referencia\n- customer_event_log.csv\n- system_snapshot_log.csv\n- atm_state_log.csv\n- observación real limitada\n- supuestos documentados" as RefData
+}
+
+package "2. Núcleo estocástico" {
+  component "Generador pseudoaleatorio\n(RNG / seed)" as RNG
+
+  component "Motor de muestreo\n- Poisson / Exponencial\n- M/G/4 para servicio\n- Bernoulli para abandono\n- distribuciones positivas\n  (gamma / lognormal / triangular)" as Sampler
+
+  component "Modulador temporal de intensidad\nλ(t) según:\n- franja horaria\n- calendario laboral\n- presión social\n- reducción de capacidad" as Lambda
+}
+
+package "3. Motor de simulación de eventos discretos" {
+  component "Entorno SimPy / reloj\nde simulación" as Env
+
+  component "Planificador de eventos\n- customer_arrival\n- queue_enter\n- service_start\n- service_end\n- customer_abandon\n- atm_failure\n- atm_cashout\n- atm_maintenance_start\n- atm_recovery\n- cash_replenishment\n- system_snapshot" as Scheduler
+
+  component "Estado global del sistema\n- cola\n- ATM activos / ocupados / libres\n- ATM caídos / mantenimiento / cashout\n- clientes en sistema\n- acumuladores KPI" as State
+
+  component "Bus de trazabilidad de eventos\n- registro cronológico\n- timestamp del evento\n- entidad afectada\n- transición de estado" as EventBus
+}
+
+package "4. Entidades y recursos" {
+  component "Customer\n- arrival_ts\n- tipo de operación inferido\n- rango etario estimado\n- cola\n- abandono\n- tiempos individuales" as Customer
+
+  component "ATM[1..4]\n- idle\n- busy\n- down_failure\n- down_maintenance\n- cashout\n- cash_available\n- flags de falla / red / mantenimiento" as ATM
+
+  component "Recurso cola\nFIFO con prioridad excepcional\nsegún reglas del sistema" as Queue
+}
+
+package "5. Procesos operativos" {
+  component "Generador de llegadas\n- lee λ(t)\n- muestrea interarribos\n- crea Customer" as ArrivalGen
+
+  component "Flujo del cliente\n- evaluación de ATM libre\n- ingreso a cola\n- asignación de ATM\n- cierre de evento" as CustomerFlow
+
+  component "Política de asignación\n- primer ATM funcional libre\n- coherencia con cola única\n- respeto de prioridad excepcional" as AssignPolicy
+
+  component "Política de priorización\n- cola general base\n- prioridad excepcional\n  para población vulnerable\n- no es segunda cola permanente" as PriorityPolicy
+
+  component "Lógica de servicio\n- duración base por operación\n- ajuste por fricción\n- ajuste por ayuda asistida\n- interrupción por contingencia" as ServiceProc
+
+  component "Lógica de abandono\n- umbral / probabilidad\n- espera acumulada\n- longitud de cola\n- contingencia visible\n- horario" as AbandonProc
+
+  component "Generador de contingencias\n- falla\n- cashout\n- mantenimiento\n- recuperación\n- recarga" as ContProc
+
+  component "Monitor de snapshots\n- longitud de cola\n- capacidad activa\n- presión compuesta\n- estado agregado" as SnapProc
+}
+
+package "6. Salidas y trazabilidad" {
+  component "customer_event_log.csv" as OutCustomer
+  component "atm_state_log.csv" as OutATM
+  component "system_snapshot_log.csv" as OutSnap
+
+  component "KPIs del sistema\n- llegadas totales\n- llegadas por minuto / franja\n- Wq / Lq\n- utilización ρ\n- abandonos / loss_rate\n- cola máxima\n- minutos pico\n- capacidad reducida" as KPI
+
+  component "Capa de postproceso KPI\n- deriva métricas desde logs\n- consolida por escenario\n- compara corridas\n- produce tablas finales" as KPIEngine
+}
+
+package "7. Escenarios experimentales" {
+  component "S1_normal\nS2_fin_mes\nS3_quincena\nS4_pension65_atm\nS5_falla_1_atm\nS6_cashout\nS7_mantenimiento\nS8_nocturno_restringido\nS9_critico" as Scenarios
+}
+
+Config --> Params
+Config --> Context
+RefData --> Params
+RefData --> Context
+Scenarios --> Config
+Scenarios --> Context
+
+Params --> Sampler
+Context --> Lambda
+Lambda --> ArrivalGen
+RNG --> Sampler
+Sampler --> ArrivalGen
+Sampler --> ServiceProc
+Sampler --> AbandonProc
+Sampler --> ContProc
+
+Env --> Scheduler
+Scheduler --> ArrivalGen
+Scheduler --> CustomerFlow
+Scheduler --> AssignPolicy
+Scheduler --> PriorityPolicy
+Scheduler --> ServiceProc
+Scheduler --> AbandonProc
+Scheduler --> ContProc
+Scheduler --> SnapProc
+
+ArrivalGen --> Customer
+ArrivalGen --> CustomerFlow
+CustomerFlow --> PriorityPolicy
+CustomerFlow --> AssignPolicy
+CustomerFlow --> Queue
+CustomerFlow --> ATM
+CustomerFlow --> State
+
+AssignPolicy --> ATM
+AssignPolicy --> Queue
+AssignPolicy --> State
+
+PriorityPolicy --> Queue
+PriorityPolicy --> State
+
+ServiceProc --> ATM
+ServiceProc --> Customer
+ServiceProc --> State
+
+AbandonProc --> Customer
+AbandonProc --> Queue
+AbandonProc --> State
+
+ContProc --> ATM
+ContProc --> State
+ContProc --> Queue
+
+SnapProc --> State
+
+Scheduler --> EventBus
+ArrivalGen --> EventBus
+CustomerFlow --> EventBus
+AssignPolicy --> EventBus
+PriorityPolicy --> EventBus
+ServiceProc --> EventBus
+AbandonProc --> EventBus
+ContProc --> EventBus
+SnapProc --> EventBus
+
+State --> OutCustomer
+State --> OutATM
+State --> OutSnap
+EventBus --> OutCustomer
+EventBus --> OutATM
+EventBus --> OutSnap
+
+OutCustomer --> KPIEngine
+OutATM --> KPIEngine
+OutSnap --> KPIEngine
+KPIEngine --> KPI
+
+Customer --> OutCustomer
+ATM --> OutATM
+Queue --> KPI
+
+note right of Lambda
+La intensidad de llegadas no es constante.
+Debe variar por franja horaria y por contexto:
+- mediodía = pico principal
+- tarde = pico secundario
+- calendario y presión social modifican λ
+end note
+
+note bottom of Scheduler
+El simulador es de eventos discretos.
+El reloj avanza de evento en evento,
+no de segundo en segundo por fuerza bruta.
+end note
+
+note bottom of KPI
+Los KPIs no se “adivinan”.
+Se calculan a partir de logs de cliente,
+estados ATM, snapshots agregados
+y postproceso consistente por escenario.
+end note
+
+note right of PriorityPolicy
+La prioridad no implica una segunda cola estable.
+Es una regla de despacho excepcional
+dentro de la lógica general del sistema.
+end note
+
+note left of EventBus
+Toda transición relevante debe quedar trazada.
+Esto evita incoherencias entre:
+- evento
+- estado
+- log
+- KPI derivado
+end note
+
+@enduml

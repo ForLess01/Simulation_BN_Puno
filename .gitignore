@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+.venv/
+*.pyc
+*.pyo
+*.pyd
+
+# Local simulation outputs
+outputs/
+
+# OS/editor noise
+.idea/
+.vscode/

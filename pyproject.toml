@@ -1,0 +1,25 @@
+[project]
+name = "atm-simpy-simulator"
+version = "0.1.0"
+description = "SimPy ATM discrete-event simulator for BN Puno scenarios"
+readme = "docs/PROJECT_CONTINUITY.md"
+requires-python = ">=3.10"
+dependencies = [
+  "simpy>=4.1.1",
+  "pandas>=2.2.2",
+  "numpy>=1.26.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2.0"]
+
+[project.scripts]
+atm-sim = "atm_simulator.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

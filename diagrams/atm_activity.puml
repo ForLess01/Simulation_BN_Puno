@@ -1,0 +1,37 @@
+@startuml
+title Flujo general de atención del cliente en ATM
+
+start
+:Cliente llega al área ATM;
+:Registrar arrival_ts;
+
+if (¿Hay ATM libre?) then (Sí)
+  :Asignar ATM;
+  :Registrar service_start_ts;
+  :Cliente realiza operación;
+  if (¿Ocurre falla?) then (Sí)
+    :Interrupción / reintento / desistimiento;
+  endif
+  :Registrar service_end_ts;
+  :Registrar departure_ts;
+  stop
+else (No)
+  :Ingresa a cola;
+  :Registrar queue_position_at_arrival;
+  if (¿Cliente abandona?) then (Sí)
+    :Registrar abandon_ts;
+    :Registrar abandon_reason presumida;
+    :departure_ts = abandon_ts;
+    stop
+  else (No)
+    :Espera hasta disponibilidad;
+    :Asignar ATM;
+    :Registrar service_start_ts;
+    :Cliente realiza operación;
+    :Registrar service_end_ts;
+    :Registrar departure_ts;
+    stop
+  endif
+endif
+
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+left to right direction
+title Casos de uso del sistema ATM observado/simulado
+
+actor Cliente
+actor Observador
+actor OperadorATM
+actor ProgramaSocial
+
+rectangle SistemaATM {
+  usecase "Llegar al área ATM" as UC1
+  usecase "Esperar en cola" as UC2
+  usecase "Usar ATM" as UC3
+  usecase "Abandonar cola" as UC4
+  usecase "Registrar evento observado" as UC5
+  usecase "Registrar estado ATM" as UC6
+  usecase "Gestionar mantenimiento" as UC7
+  usecase "Procesar cobro social" as UC8
+}
+
+Cliente --> UC1
+Cliente --> UC2
+Cliente --> UC3
+Cliente --> UC4
+Observador --> UC5
+Observador --> UC6
+OperadorATM --> UC6
+OperadorATM --> UC7
+ProgramaSocial --> UC8
+
+UC8 ..> UC3 : puede usar
+UC8 ..> UC2 : puede generar presión
+
+@enduml
