@@ -895,6 +895,49 @@ Registro por cambio de estado operativo del ATM.
 ### 11.3 system_snapshot_log.csv
 Registro agregado por instante o intervalo fijo.
 
+### 11.4 Estructura actual del proyecto
+
+La organización actual del proyecto puede resumirse en el siguiente árbol de directorios principal:
+
+```text
+Project I/
+├── .atl/
+├── data/
+│   ├── customer_event_log.csv
+│   ├── atm_state_log.csv
+│   └── system_snapshot_log.csv
+├── diagrams/
+│   ├── atm_activity.puml / .png / .svg
+│   ├── atm_bpmn_equivalent.puml / .png / .svg
+│   ├── atm_causal_map.puml / .png / .svg
+│   ├── atm_data_model.puml / .png / .svg
+│   ├── atm_state.puml / .png / .svg
+│   ├── atm_use_case.puml / .png / .svg
+│   └── atm_simulation_architecture.puml / .png / .svg
+├── docs/
+│   ├── ATM_SIMULATION_SPEC.md
+│   ├── ATM_SIMULATION_SPEC.pdf
+│   ├── PROJECT_CONTINUITY.md
+│   ├── PROJECT_PRESENTATION_SPLIT.md
+│   └── SIMULATION_UI_DESIGN.md
+├── drive sources/
+├── outputs/
+├── scripts/
+├── src/
+│   └── atm_simulator/
+├── tests/
+├── Analisis_Simulacion_BN_Puno.ipynb
+├── pyproject.toml
+└── streamlit_app.py
+```
+
+Este árbol refleja la coexistencia de cuatro capas principales del trabajo:
+
+1. **documentación técnica y metodológica** (`docs/`)
+2. **datasets y artefactos de salida** (`data/`, `outputs/`)
+3. **diagramas del modelo y de la simulación** (`diagrams/`)
+4. **implementación computacional del simulador y pruebas** (`src/`, `tests/`, `streamlit_app.py`)
+
 ---
 
 ## 12. Variables refinadas del proyecto
